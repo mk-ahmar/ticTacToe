@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tic‑Tac‑Toe — Responsive & Animated</title>
+  <style>
+    :root{
+      --bg: linear-gradient(135deg,#0f172a 0%, #071029 100%);
+      --card: rgba(255,255,255,0.03);
+      --glass: rgba(255,255,255,0.04);
+      --accent1: #ff6b6b; /* X */
+      --accent2: #6be4ff; /* O */
+      --accent3: #ffd166; /* highlights */
+      --text: #e6eef8;
+      --muted: rgba(230,238,248,0.6);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: var(--bg);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      display:flex;align-items:center;justify-content:center;padding:24px;
+    }
+
+    .app{
+      width:100%;max-width:980px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:18px;padding:18px;box-shadow:0 10px 30px rgba(2,6,23,0.6);
+      display:grid;grid-template-columns: 1fr 360px;gap:18px;align-items:start;
+    }
+
+    /* responsive: stack on narrow screens */
+    @media (max-width:880px){
+      .app{grid-template-columns:1fr; padding:14px}
+      .right-panel{order:2}
+    }
+
+    header{
+      grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;
+    }
+    h1{font-size:clamp(18px,3vw,22px);margin:0}
+    .sub{color:var(--muted);font-size:13px}
+
+    .board-wrap{background:var(--card);padding:18px;border-radius:12px;display:flex;flex-direction:column;align-items:center;position:relative}
+
+    /* board size responsive with clamp */
+    .board{
+      display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:clamp(260px,40vmin,520px);height:clamp(260px,40vmin,520px);
+      touch-action: manipulation;position:relative;
+    }
+
+    /* overlay svg for win line */
+    .win-svg{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+
+    .cell{
+      background:var(--glass);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;
+      transition:transform .18s ease, box-shadow .18s ease;
+      user-select:none;padding:8px;
+    }
+    .cell:active{transform:scale(.98)}
+    .cell.disabled{pointer-events:none;opacity:.95}
+    .cell:hover{box-shadow:0 6px 18px rgba(2,6,23,0.5)}
+
+    /* SVG fills tiles nicely */
+    svg{width:70%;height:70%;display:block}
+    .x-line,.o-ring{stroke-width:10;stroke-linecap:round;stroke-linejoin:round;fill:none}
+
+    /* animation for drawing shapes */
+    .x-line{stroke:var(--accent1);stroke-dasharray:120;stroke-dashoffset:120;transition:stroke-dashoffset .45s cubic-bezier(.2,.9,.1,1)}
+    .o-ring{stroke:var(--accent2);stroke-dasharray:300;stroke-dashoffset:300;transition:stroke-dashoffset .45s cubic-bezier(.2,.9,.1,1)}
+    .placed .x-line{stroke-dashoffset:0}
+    .placed .o-ring{stroke-dashoffset:0}
+
+    .controls{display:flex;flex-direction:column;gap:12px}
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:10px}
+
+    .btns{display:flex;gap:8px;flex-wrap:wrap}
+    button{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:10px 12px;border-radius:8px;color:var(--text);font-weight:600;cursor:pointer}
+    button.primary{background:linear-gradient(90deg,var(--accent3),#ffd9a8);color:#071029;border:none}
+    .muted{color:var(--muted);font-weight:600}
+
+    .right-panel{display:flex;flex-direction:column;gap:12px}
+    .score{display:flex;gap:8px;justify-content:space-between;align-items:center}
+    .score .pill{background:rgba(255,255,255,0.03);padding:10px;border-radius:10px;min-width:80px;text-align:center}
+
+    .mode-row{display:flex;gap:8px;align-items:center}
+    select,input[type=radio]{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:8px;color:var(--text)}
+
+    .status{padding:10px;border-radius:10px;background:linear-gradient(90deg, rgba(255,255,255,0.012), rgba(255,255,255,0.02));text-align:center;font-weight:700}
+
+    .win-line{
+      position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center
+    }
+
+    /* highlight winning cells */
+    .cell.win{animation:winPulse .9s ease forwards}
+    @keyframes winPulse{0%{transform:scale(1);box-shadow:0 0 0 rgba(255,209,102,0)}50%{transform:scale(1.02);box-shadow:0 12px 30px rgba(255,209,102,0.12)}100%{transform:scale(1);box-shadow:0 0 0 rgba(255,209,102,0)}}
+
+    /* win line base style - stroke color will be set dynamically to match winner */
+    .drawn-win{stroke-linecap:round;stroke-dasharray:1000;stroke-dashoffset:1000;transition:stroke-dashoffset .7s cubic-bezier(.2,.9,.1,1);filter:drop-shadow(0 6px 18px rgba(0,0,0,0.28))}
+
+    /* small helper for mobile spacing */
+    .spacer{height:6px}
+
+    /* nice little transitions */
+    .fade{transition:opacity .25s ease, transform .25s ease}
+
+    .theme-row{display:flex;gap:6px;align-items:center}
+    .swatch{width:28px;height:28px;border-radius:8px;cursor:pointer;border:2px solid rgba(255,255,255,0.04)}
+
+    /* simple responsive text sizes */
+    .muted-small{color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1>Tic‑Tac‑Toe</h1>
+        <div class="sub">@mk_ahmar</div>
+      </div>
+      <div class="sub muted">Tap or click a cell to play — works on mobile, tablet & PC</div>
+    </header>
+
+    <main class="board-wrap">
+      <div class="board" id="board" aria-label="Tic Tac Toe board">
+        <!-- 9 cells injected by JS for accessibility -->
+        <!-- SVG overlay lives *inside* the board so it always matches board size exactly -->
+        <svg class="win-svg" id="winSvg" preserveAspectRatio="none" aria-hidden="true"></svg>
+      </div>
+      <!-- overlay SVG; we keep it inside board for sizing and responsiveness -->
+      <svg class="win-svg" id="winSvg" preserveAspectRatio="none" aria-hidden="true"></svg>
+
+      <div style="height:12px"></div>
+      <div class="controls" style="width:100%">
+        <div class="panel">
+          <div class="status" id="status">Choose mode & start</div>
+        </div>
+        <div class="panel mode-row">
+          <label class="muted-small">Mode:</label>
+          <div class="btns">
+            <button id="mode-two" data-mode="two">Two Players</button>
+            <button id="mode-bot" data-mode="bot">Play vs Bot</button>
+          </div>
+        </div>
+        <div class="panel mode-row">
+          <label class="muted-small">Difficulty:</label>
+          <select id="difficulty" aria-label="Select difficulty">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard (Unbeatable)</option>
+          </select>
+          <div style="flex:1"></div>
+          <button id="restart" class="primary">Restart</button>
+        </div>
+      </div>
+
+    </main>
+
+    <aside class="right-panel">
+      <div class="panel score">
+        <div class="pill">X: <span id="score-x">0</span></div>
+        <div class="pill">Draws: <span id="score-d">0</span></div>
+        <div class="pill">O: <span id="score-o">0</span></div>
+      </div>
+      <div class="panel">
+        <div class="muted-small">Options</div>
+        <div style="height:10px"></div>
+        <div class="mode-row">
+          <label class="muted-small">Play as:</label>
+          <div class="btns">
+            <button id="play-x">X (first)</button>
+            <button id="play-o">O (second)</button>
+          </div>
+        </div>
+        <div style="height:8px"></div>
+        <div class="muted-small">Theme</div>
+        <div style="height:8px"></div>
+        <div class="theme-row">
+          <div class="swatch" title="Warm" style="background:linear-gradient(180deg,#ff9a9e,#fecfef)" data-theme="warm"></div>
+          <div class="swatch" title="Ocean" style="background:linear-gradient(180deg,#9be7ff,#6be4ff)" data-theme="ocean"></div>
+          <div class="swatch" title="Sun" style="background:linear-gradient(180deg,#ffd166,#fff1c2)" data-theme="sun"></div>
+          <div class="swatch" title="Neon" style="background:linear-gradient(180deg,#7efc7e,#6be4ff)" data-theme="neon"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="muted-small">How it works</div>
+        <div style="height:8px"></div>
+        <div class="muted">Get three in a row — horizontally, vertically, or diagonally. Against the bot you can choose difficulty; hard uses minimax (optimal play).</div>
+      </div>
+    </aside>
+
+    <footer>Built by Md Kashf Ahmar</footer>
+  </div>
+
+  <script>
+    // Create board cells
+    const boardEl = document.getElementById('board');
+    const statusEl = document.getElementById('status');
+    const scoreX = document.getElementById('score-x');
+    const scoreO = document.getElementById('score-o');
+    const scoreD = document.getElementById('score-d');
+    const winSvg = document.getElementById('winSvg');
+
+    const modeTwoBtn = document.getElementById('mode-two');
+    const modeBotBtn = document.getElementById('mode-bot');
+    const restartBtn = document.getElementById('restart');
+    const difficultySel = document.getElementById('difficulty');
+    const playXBtn = document.getElementById('play-x');
+    const playOBtn = document.getElementById('play-o');
+
+    let board = Array(9).fill(null);
+    const WIN = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+
+    let currentPlayer = 'X';
+    let humanPlayer = 'X';
+    let botPlayer = 'O';
+    let mode = 'two';
+    let gameOver = false;
+    let scores = {X:0,O:0,D:0};
+    let lastWinningLine = null; // remember winning combination to redraw on resize
+
+    function createCells(){
+      boardEl.innerHTML = '';
+      for(let i=0;i<9;i++){
+        const cell = document.createElement('button');
+        cell.className = 'cell fade';
+        cell.dataset.index = i;
+        cell.setAttribute('aria-label','cell '+(i+1));
+
+        // inject SVG placeholders for x and o
+        cell.innerHTML = `
+          <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+            <g class="x-group" style="display:none">
+              <line class="x-line" x1="20" y1="20" x2="80" y2="80"></line>
+              <line class="x-line" x1="80" y1="20" x2="20" y2="80"></line>
+            </g>
+            <g class="o-group" style="display:none">
+              <circle class="o-ring" cx="50" cy="50" r="28"></circle>
+            </g>
+          </svg>
+        `;
+        cell.addEventListener('click', onCellClick);
+        boardEl.appendChild(cell);
+      }
+    }
+
+    function onCellClick(e){
+      const idx = Number(e.currentTarget.dataset.index);
+      if(gameOver || board[idx] !== null) return;
+      if(mode === 'bot' && currentPlayer !== humanPlayer) return; // block if waiting for bot
+      makeMove(idx, currentPlayer);
+      updateUI();
+      const win = checkWinner(board);
+      if(win){endGame(win);} else if(isBoardFull(board)){endGame(null)} else {
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        updateStatus();
+        if(mode === 'bot' && currentPlayer === botPlayer){
+          // small delay for natural feel
+          setTimeout(() => botTurn(), 320);
+        }
+      }
+    }
+
+    function makeMove(idx, player){
+      board[idx] = player;
+      const cell = boardEl.querySelector(`.cell[data-index='${idx}']`);
+      if(!cell) return;
+      // toggle appropriate svg group
+      const xg = cell.querySelector('.x-group');
+      const og = cell.querySelector('.o-group');
+      if(player === 'X'){
+        xg.style.display = 'block';
+      } else {
+        og.style.display = 'block';
+      }
+      // small timeout so CSS transition applies
+      requestAnimationFrame(()=>cell.classList.add('placed'));
+      cell.classList.add('disabled');
+    }
+
+    function updateUI(){
+      // disable empty cells when game over or bot turn
+      document.querySelectorAll('.cell').forEach((c)=>{
+        const idx = Number(c.dataset.index);
+        if(board[idx] === null && !gameOver) c.classList.remove('disabled');
+        if(board[idx] !== null) c.classList.add('disabled');
+      });
+    }
+
+    function isBoardFull(b){
+      return b.every(Boolean);
+    }
+
+    function checkWinner(b){
+      for(const combo of WIN){
+        const [a,b1,c] = combo;
+        if(b[a] && b[a] === b[b1] && b[a] === b[c]){
+          return {winner: b[a], line: combo};
+        }
+      }
+      return null;
+    }
+
+    function endGame(result){
+      gameOver = true;
+      lastWinningLine = null;
+      clearWinLine();
+      if(result){
+        // highlight cells
+        result.line.forEach(i=>{
+          const c = boardEl.querySelector(`.cell[data-index='${i}']`);
+          c.classList.add('win');
+        });
+        // draw animated win line after a short delay so cell animations show first
+        setTimeout(()=>{
+          lastWinningLine = result.line.slice();
+          drawWinLine(result.line);
+        }, 180);
+
+        scores[result.winner] += 1;
+        updateScores();
+        statusEl.textContent = `Player ${result.winner} wins!`;
+      } else {
+        scores.D += 1;updateScores();
+        statusEl.textContent = `It's a draw!`;
+      }
+      // disable further clicks
+      document.querySelectorAll('.cell').forEach(c=>c.classList.add('disabled'));
+    }
+
+    function updateScores(){
+      scoreX.textContent = scores.X;
+      scoreO.textContent = scores.O;
+      scoreD.textContent = scores.D;
+    }
+
+    function updateStatus(){
+      if(gameOver) return;
+      statusEl.textContent = `Turn: ${currentPlayer} ${mode === 'bot' && currentPlayer === botPlayer ? '(Bot)' : ''}`;
+    }
+
+    // Bot logic
+    function botTurn(){
+      if(gameOver) return;
+      const diff = difficultySel.value;
+      let idx;
+      if(diff === 'easy') idx = easyMove();
+      else if(diff === 'medium') idx = mediumMove();
+      else idx = hardMove();
+
+      makeMove(idx, botPlayer);
+      updateUI();
+      const win = checkWinner(board);
+      if(win){endGame(win);} else if(isBoardFull(board)){endGame(null)} else {
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        updateStatus();
+      }
+    }
+
+    function availableMoves(b){
+      return b.map((v,i)=>v===null?i:null).filter(v=>v!==null);
+    }
+
+    function easyMove(){
+      const avail = availableMoves(board);
+      return avail[Math.floor(Math.random()*avail.length)];
+    }
+
+    function mediumMove(){
+      // try to win
+      const avail = availableMoves(board);
+      for(const i of avail){
+        const clone = board.slice(); clone[i] = botPlayer;
+        if(checkWinner(clone)) return i;
+      }
+      // try to block
+      const opp = humanPlayer;
+      for(const i of avail){
+        const clone = board.slice(); clone[i] = opp;
+        if(checkWinner(clone)) return i;
+      }
+      return easyMove();
+    }
+
+    // Minimax for perfect play
+    function hardMove(){
+      const best = minimax(board.slice(), botPlayer, humanPlayer);
+      return best.index;
+    }
+
+    function minimax(newBoard, player, opponent, depth=0){
+      // Available spots
+      const avail = availableMoves(newBoard);
+      const winnerObj = checkWinner(newBoard);
+      if(winnerObj){
+        if(winnerObj.winner === botPlayer) return {score: 10 - depth};
+        else if(winnerObj.winner === humanPlayer) return {score: depth - 10};
+      }
+      if(avail.length === 0) return {score:0};
+
+      const moves = [];
+      for(const i of avail){
+        const move = {};
+        move.index = i;
+        newBoard[i] = player;
+
+        let result;
+        if(player === botPlayer){
+          result = minimax(newBoard, humanPlayer, botPlayer, depth+1);
+          move.score = result.score;
+        } else {
+          result = minimax(newBoard, botPlayer, humanPlayer, depth+1);
+          move.score = result.score;
+        }
+
+        newBoard[i] = null;
+        moves.push(move);
+      }
+
+      // choose best
+      let bestMove;
+      if(player === botPlayer){
+        let bestScore = -Infinity;
+        for(const m of moves){ if(m.score > bestScore){ bestScore = m.score; bestMove = m; } }
+      } else {
+        let bestScore = Infinity;
+        for(const m of moves){ if(m.score < bestScore){ bestScore = m.score; bestMove = m; } }
+      }
+      return bestMove;
+    }
+
+    // WIN LINE drawing functions — improved: use pixel-based SVG viewBox so the stroke width and endpoints match exactly
+    function clearWinLine(){
+      while(winSvg.firstChild) winSvg.removeChild(winSvg.firstChild);
+      // reset viewBox to empty
+      winSvg.removeAttribute('viewBox');
+    }
+
+    function drawWinLine(line){
+      // compute center coordinates of first and last cell in pixels relative to board
+      const cells = Array.from(document.querySelectorAll('.cell'));
+      const boardRect = boardEl.getBoundingClientRect();
+
+      const firstRect = cells[line[0]].getBoundingClientRect();
+      const lastRect = cells[line[2]].getBoundingClientRect();
+
+      const cx1 = (firstRect.left + firstRect.width/2) - boardRect.left;
+      const cy1 = (firstRect.top + firstRect.height/2) - boardRect.top;
+      const cx2 = (lastRect.left + lastRect.width/2) - boardRect.left;
+      const cy2 = (lastRect.top + lastRect.height/2) - boardRect.top;
+
+      let dx = cx2 - cx1; let dy = cy2 - cy1;
+      let dist = Math.hypot(dx, dy);
+      if(dist === 0) return; // shouldn't happen
+
+      // inset so line stops inside the outer edges of winning cells (don't cross entire board)
+      const cellSize = Math.min(firstRect.width, firstRect.height);
+      // use a bit more inset to avoid touching rounded corners
+      const insetPx = cellSize * 0.52;
+
+      // If inset would make the line inverted (too short), cap it
+      const maxInset = dist * 0.45;
+      const useInset = Math.min(insetPx, maxInset);
+
+      // new endpoints in px
+      const nx1 = cx1 + (dx/dist) * useInset;
+      const ny1 = cy1 + (dy/dist) * useInset;
+      const nx2 = cx2 - (dx/dist) * useInset;
+      const ny2 = cy2 - (dy/dist) * useInset;
+
+      // convert to 0..100 viewBox coordinates (percent) for stable scaling
+      const x1p = (nx1 / boardRect.width) * 100;
+      const y1p = (ny1 / boardRect.height) * 100;
+      const x2p = (nx2 / boardRect.width) * 100;
+      const y2p = (ny2 / boardRect.height) * 100;
+
+      // set svg viewBox to normalized 0..100 coordinates
+      winSvg.setAttribute('viewBox', `0 0 100 100`);
+
+      // create line element using percent-coordinates
+      const lineEl = document.createElementNS('http://www.w3.org/2000/svg','line');
+      lineEl.setAttribute('x1', x1p);
+      lineEl.setAttribute('y1', y1p);
+      lineEl.setAttribute('x2', x2p);
+      lineEl.setAttribute('y2', y2p);
+      lineEl.setAttribute('class','drawn-win');
+      lineEl.setAttribute('stroke-linecap','round');
+
+      // stroke color based on winner (X/O)
+      const winner = board[line[0]];
+      const rootStyles = getComputedStyle(document.documentElement);
+      const strokeColor = winner === 'X' ? rootStyles.getPropertyValue('--accent1').trim() : rootStyles.getPropertyValue('--accent2').trim();
+      lineEl.setAttribute('stroke', strokeColor || 'var(--accent3)');
+
+      // choose desired stroke in px (scale with cell size) and convert to viewBox units
+      const desiredStrokePx = Math.max(4, Math.min(12, cellSize * 0.14));
+      const strokeWidthPct = (desiredStrokePx / boardRect.width) * 100; // in viewBox units
+      lineEl.setAttribute('stroke-width', strokeWidthPct);
+
+      // compute length in viewBox units (0..100) for dash animation
+      const len = Math.hypot(x2p - x1p, y2p - y1p);
+      const dash = len * 1.05;
+      lineEl.style.strokeDasharray = dash;
+      lineEl.style.strokeDashoffset = dash;
+
+      // append and animate
+      winSvg.appendChild(lineEl);
+      requestAnimationFrame(()=>{
+        lineEl.style.transition = 'stroke-dashoffset .6s cubic-bezier(.2,.9,.1,1)';
+        lineEl.style.strokeDashoffset = '0';
+      });
+    }
+
+    // Controls
+    modeTwoBtn.addEventListener('click', ()=>{ mode = 'two'; currentPlayer = 'X'; updateGameStart(); });
+    modeBotBtn.addEventListener('click', ()=>{ mode = 'bot'; currentPlayer = 'X'; updateGameStart(); });
+    restartBtn.addEventListener('click', ()=>{ resetBoard(); });
+
+    playXBtn.addEventListener('click', ()=>{ humanPlayer = 'X'; botPlayer = 'O'; resetBoard(); });
+    playOBtn.addEventListener('click', ()=>{ humanPlayer = 'O'; botPlayer = 'X'; resetBoard(); });
+
+    // theme swatches
+    document.querySelectorAll('.swatch').forEach(s=>{
+      s.addEventListener('click', ()=>{
+        const t = s.dataset.theme;
+        switch(t){
+          case 'warm': setTheme('#ff6b6b','#ffd166','#ff9a9e'); break;
+          case 'ocean': setTheme('#7ee8fa','#6be4ff','#9be7ff'); break;
+          case 'sun': setTheme('#ff8a00','#ffd166','#fff1c2'); break;
+          case 'neon': setTheme('#7efc7e','#6be4ff','#7efc7e'); break;
+        }
+      })
+    });
+
+    function setTheme(xColor,oColor,accent){
+      document.documentElement.style.setProperty('--accent1', xColor);
+      document.documentElement.style.setProperty('--accent2', oColor);
+      document.documentElement.style.setProperty('--accent3', accent);
+    }
+
+    // initialize
+    function updateGameStart(){
+      resetBoard();
+      if(mode==='two'){ statusEl.textContent = 'Two player mode — X starts'; }
+      else { statusEl.textContent = 'Play vs Bot — X starts'; }
+    }
+
+    function resetBoard(){
+      board = Array(9).fill(null);gameOver=false;currentPlayer = 'X';
+      document.querySelectorAll('.cell').forEach(c=>{
+        c.className = 'cell fade';
+        const xg = c.querySelector('.x-group'); const og = c.querySelector('.o-group');
+        if(xg) xg.style.display = 'none'; if(og) og.style.display = 'none';
+      });
+      clearWinLine(); lastWinningLine = null;
+      updateUI(); updateStatus();
+      // if bot starts and human is O, let bot make first move
+      if(mode === 'bot' && botPlayer === 'X'){
+        setTimeout(()=>{ if(!gameOver) botTurn(); }, 350);
+      }
+    }
+
+    // Setup initial cells and listeners
+    createCells();
+    updateGameStart();
+    updateScores();
+
+    // small accessibility: keyboard navigation
+    document.addEventListener('keydown', (e)=>{
+      if(e.key >= '1' && e.key <= '9'){
+        const idx = Number(e.key) - 1;
+        const cell = document.querySelector(`.cell[data-index='${idx}']`);
+        if(cell) cell.click();
+      }
+      if(e.key === 'r'){ resetBoard(); }
+    });
+
+    // Make board clickable area larger on very small screens (increase tap target)
+    (function makeTapTargetsBigger(){
+      const style = document.createElement('style');
+      style.innerHTML = `.cell{padding:16px}@media (max-width:420px){.cell{padding:20px}}`;
+      document.head.appendChild(style);
+    })();
+
+    // Keep winSvg dimensions synced with board in case of layout/resize
+    window.addEventListener('resize', ()=>{
+      // If there is a recent winning line, redraw it to fit new sizes
+      if(gameOver && lastWinningLine){
+        clearWinLine();
+        // small timeout to allow layout to settle
+        setTimeout(()=> drawWinLine(lastWinningLine), 50);
+      } else {
+        clearWinLine();
+      }
+    });
+
+  </script>
+</body>
+</html>
