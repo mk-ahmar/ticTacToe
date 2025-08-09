@@ -16,20 +16,19 @@
       --muted: rgba(230,238,248,0.6);
     }
     *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
+    html,body{
       margin:0;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
       background: var(--bg);
       color:var(--text);
       -webkit-font-smoothing:antialiased;
       -moz-osx-font-smoothing:grayscale;
-      display:flex;align-items:center;justify-content:center;padding:24px;
+      display:flex;align-items:flex-start;justify-content:center;padding:24px;padding-bottom:48px;min-height:100vh;overflow:auto;
     }
 
     .app{
       width:100%;max-width:980px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:18px;padding:18px;box-shadow:0 10px 30px rgba(2,6,23,0.6);
-      display:grid;grid-template-columns: 1fr 360px;gap:18px;align-items:start;
+      display:grid;grid-template-columns: 1fr 360px;gap:18px;align-items:start;max-height:calc(100vh - 72px);overflow:auto;
     }
 
     /* responsive: stack on narrow screens */
@@ -120,7 +119,7 @@
     <header>
       <div>
         <h1>Tic‑Tac‑Toe</h1>
-        <div class="sub">@mk_ahmar</div>
+        <div class="sub">Animated ● Responsive ● Play vs Friend or Bot</div>
       </div>
       <div class="sub muted">Tap or click a cell to play — works on mobile, tablet & PC</div>
     </header>
@@ -131,8 +130,6 @@
         <!-- SVG overlay lives *inside* the board so it always matches board size exactly -->
         <svg class="win-svg" id="winSvg" preserveAspectRatio="none" aria-hidden="true"></svg>
       </div>
-      <!-- overlay SVG; we keep it inside board for sizing and responsiveness -->
-      <svg class="win-svg" id="winSvg" preserveAspectRatio="none" aria-hidden="true"></svg>
 
       <div style="height:12px"></div>
       <div class="controls" style="width:100%">
@@ -193,7 +190,7 @@
       </div>
     </aside>
 
-    <footer>Built by Md Kashf Ahmar</footer>
+    <footer>Built with HTML • CSS • JavaScript — touch friendly, responsive and animated.</footer>
   </div>
 
   <script>
